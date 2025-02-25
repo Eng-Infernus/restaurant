@@ -1,0 +1,289 @@
+<!-- orders/cart.html -->
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="cart-container">
+   <h1>{% trans "Shopping Cart" %}</h1>
+
+   {% if cart_items %}
+       <div class="cart-items">
+           {% for item in cart_items %}
+           <div class="cart-item">
+               <img src="{{ item.food_item.image.url }}" alt="{{ item.food_item.name_en }}" class="cart-item-image">
+               <div class="cart-item-details">
+                   <h3>{% if LANGUAGE_CODE == 'ar' %}{{ item.food_item.name_ar }}{% else %}{{ item.food_item.name_en }}{% endif %}</h3>
+                   <p class="price">{{ item.food_item.price }} {% trans "KWD" %}</p>
+               </div>
+               <div class="quantity-control">
+                   <button class="quantity-btn decrease" data-item-id="{{ item.food_item.id }}">-</button>
+                   <input type="number" value="{{ item.quantity }}" min="1" max="10" class="quantity-input"
+                          data-item-id="{{ item.food_item.id }}">
+                   <button class="quantity-btn increase" data-item-id="{{ item.food_item.id }}">+</button>
+               </div>
+               <p class="item-total">{{ item.total }} {% trans "KWD" %}</p>
+               <button class="remove-item" data-item-id="{{ item.food_item.id }}">&times;</button>
+           </div>
+           {% endfor %}
+       </div>
+
+       <div class="cart-summary">
+           <div class="summary-row">
+               <span>{% trans "Subtotal" %}</span>
+               <span>{{ subtotal }} {% trans "KWD" %}</span>
+           </div>
+           <div class="summary-row">
+               <span>{% trans "Delivery Fee" %}</span>
+               <span>{{ delivery_fee }} {% trans "KWD" %}</span>
+           </div>
+           <div class="summary-row total">
+               <span>{% trans "Total" %}</span>
+               <span>{{ total }} {% trans "KWD" %}</span>
+           </div>
+           <a href="{% url 'orders:checkout' %}" class="btn btn-primary checkout-btn">
+               {% trans "Proceed to Checkout" %}
+           </a>
+       </div>
+   {% else %}
+       <div class="empty-cart">
+           <i class="fas fa-shopping-cart"></i>
+           <p>{% trans "Your cart is empty" %}</p>
+           <a href="{% url 'menu:list' %}" class="btn btn-primary">{% trans "Browse Menu" %}</a>
+       </div>
+   {% endif %}
+</div>
+
+<script>
+document.querySelectorAll('.quantity-btn').forEach(button => {
+   button.addEventListener('click', async function() {
+       const itemId = this.dataset.itemId;
+       const isIncrease = this.classList.contains('increase');
+       const input = this.parentElement.querySelector('.quantity-input');
+       let quantity = parseInt(input.value);
+
+       if (isIncrease && quantity < 10) {
+           quantity++;
+       } else if (!isIncrease && quantity > 1) {
+           quantity--;
+       }
+
+       input.value = quantity;
+       await updateCart(itemId, quantity);
+   });
+});
+
+document.querySelectorAll('.quantity-input').forEach(input => {
+   input.addEventListener('change', async function() {
+       const itemId = this.dataset.itemId;
+       let quantity = parseInt(this.value);
+
+       if (quantity < 1) quantity = 1;
+       if (quantity > 10) quantity = 10;
+
+       this.value = quantity;
+       await updateCart(itemId, quantity);
+   });
+});
+
+document.querySelectorAll('.remove-item').forEach(button => {
+   button.addEventListener('click', async function() {
+       const itemId = this.dataset.itemId;
+       try {
+           const response = await fetch('{% url "orders:remove_from_cart" %}', {
+               method: 'POST',
+               headers: {
+                   'Content-Type': 'application/x-www-form-urlencoded',
+                   'X-CSRFToken': '{{ csrf_token }}'
+               },
+               body: `item_id=${itemId}`
+           });
+
+           if (response.ok) {
+               location.reload();
+           }
+       } catch (error) {
+           console.error('Error:', error);
+       }
+   });
+});
+
+async function updateCart(itemId, quantity) {
+   try {
+       const response = await fetch('{% url "orders:update_cart" %}', {
+           method: 'POST',
+           headers: {
+               'Content-Type': 'application/x-www-form-urlencoded',
+               'X-CSRFToken': '{{ csrf_token }}'
+           },
+           body: `item_id=${itemId}&quantity=${quantity}`
+       });
+
+       if (response.ok) {
+           location.reload();
+       }
+   } catch (error) {
+       console.error('Error:', error);
+   }
+}
+</script>
+
+<style>
+.cart-container {
+   max-width: 1200px;
+   margin: 0 auto;
+   padding: var(--spacing-lg);
+}
+
+.cart-items {
+   background: white;
+   border-radius: 8px;
+   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+   margin-bottom: var(--spacing-lg);
+   overflow: hidden;
+}
+
+.cart-item {
+   display: grid;
+   grid-template-columns: 100px 1fr auto auto auto;
+   gap: var(--spacing-md);
+   align-items: center;
+   padding: var(--spacing-md);
+   border-bottom: 1px solid var(--border-color);
+}
+
+.cart-item-image {
+   width: 100px;
+   height: 100px;
+   object-fit: cover;
+   border-radius: 4px;
+}
+
+.cart-item-details {
+   padding-right: var(--spacing-md);
+}
+
+.cart-item-details h3 {
+   margin: 0 0 var(--spacing-xs);
+   font-size: 1.1rem;
+}
+
+.quantity-control {
+   display: flex;
+   align-items: center;
+   gap: var(--spacing-xs);
+   background: #f8f9fa;
+   padding: 4px;
+   border-radius: 4px;
+}
+
+.quantity-btn {
+   width: 28px;
+   height: 28px;
+   border: none;
+   background: white;
+   border-radius: 4px;
+   cursor: pointer;
+   font-weight: bold;
+   color: var(--primary-color);
+}
+
+.quantity-btn:hover {
+   background: var(--primary-color);
+   color: white;
+}
+
+.quantity-input {
+   width: 40px;
+   text-align: center;
+   border: none;
+   background: transparent;
+   font-weight: 500;
+}
+
+.item-total {
+   font-weight: 500;
+   color: var(--primary-color);
+   white-space: nowrap;
+}
+
+.remove-item {
+   background: none;
+   border: none;
+   color: #dc2626;
+   cursor: pointer;
+   font-size: 1.5rem;
+   padding: 4px;
+   width: 28px;
+   height: 28px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   border-radius: 4px;
+}
+
+.remove-item:hover {
+   background: #fee2e2;
+}
+
+.cart-summary {
+   background: white;
+   padding: var(--spacing-lg);
+   border-radius: 8px;
+   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.summary-row {
+   display: flex;
+   justify-content: space-between;
+   padding: var(--spacing-sm) 0;
+}
+
+.summary-row.total {
+   border-top: 2px solid var(--border-color);
+   margin-top: var(--spacing-sm);
+   padding-top: var(--spacing-md);
+   font-weight: 600;
+   font-size: 1.2rem;
+}
+
+.checkout-btn {
+   display: block;
+   width: 100%;
+   margin-top: var(--spacing-lg);
+   padding: var(--spacing-md);
+   font-size: 1.1rem;
+}
+
+.empty-cart {
+   text-align: center;
+   padding: var(--spacing-xl);
+}
+
+.empty-cart i {
+   font-size: 3rem;
+   color: var(--border-color);
+   margin-bottom: var(--spacing-md);
+}
+
+@media (max-width: 768px) {
+   .cart-item {
+       grid-template-columns: 1fr;
+       gap: var(--spacing-sm);
+       text-align: center;
+   }
+
+   .cart-item-image {
+       margin: 0 auto;
+   }
+
+   .quantity-control {
+       justify-content: center;
+       margin: var(--spacing-sm) 0;
+   }
+
+   .cart-item-details {
+       padding-right: 0;
+   }
+}
+</style>
+{% endblock %}

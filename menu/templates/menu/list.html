@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block content %}
+<div class="menu-container">
+    <div class="category-filter">
+        <button class="filter-btn {% if not request.GET.category %}active{% endif %}" data-category="all">
+            {% trans "All" %}
+        </button>
+        {% for category in categories %}
+            <button class="filter-btn {% if request.GET.category == category.slug %}active{% endif %}"
+                    data-category="{{ category.slug }}">
+                {% if LANGUAGE_CODE == 'ar' %}{{ category.name_ar }}{% else %}{{ category.name_en }}{% endif %}
+            </button>
+        {% endfor %}
+    </div>
+
+    <!-- Menu Grid -->
+    {% csrf_token %}
+<div class="menu-grid">
+   {% for item in food_items %}
+   <div class="menu-item" data-category="{{ item.category.slug }}">
+       <img src="{{ item.image.url }}" alt="{{ item.name_en }}" class="menu-item-image">
+       <div class="menu-item-details">
+           <h3>{% if LANGUAGE_CODE == 'ar' %}{{ item.name_ar }}{% else %}{{ item.name_en }}{% endif %}</h3>
+           <div class="menu-item-meta">
+               <span class="price">{{ item.price }} {% trans "KWD" %}</span>
+           </div>
+           <div class="menu-item-actions">
+               <button class="btn btn-primary add-to-cart-btn" data-item-id="{{ item.id }}">
+                   {% trans "Add to Cart" %}
+               </button>
+               <a href="{% url 'menu:detail' item.id %}" class="btn btn-secondary">{% trans "Details" %}</a>
+
+           </div>
+       </div>
+   </div>
+   {% endfor %}
+</div>
+
+<script>
+document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+   button.addEventListener('click', async function() {
+       const itemId = this.dataset.itemId;
+       const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+       try {
+           const response = await fetch('{% url "orders:add_to_cart" %}', {
+               method: 'POST',
+               headers: {
+                   'Content-Type': 'application/x-www-form-urlencoded',
+                   'X-CSRFToken': csrfToken
+               },
+               body: `item_id=${itemId}&quantity=1`
+           });
+
+           if (response.ok) {
+               const data = await response.json();
+               // Update cart count
+               const cartCount = document.querySelector('.cart-count');
+               if (cartCount) {
+                   cartCount.textContent = data.cart_total;
+               }
+               // Show success message
+               alert('Item added to cart!');
+           }
+       } catch (error) {
+           console.error('Error:', error);
+           alert('Failed to add item to cart');
+       }
+   });
+});
+</script>
+</div>
+<style>
+
+.menu-item-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+.filter-btn {
+    padding: 8px 16px;
+    margin: 0 4px;
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+</style>
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.filter-btn').forEach(button => {
+    button.addEventListener('click', function() {
+        const category = this.dataset.category;
+        if (category === 'all') {
+            window.location.href = '{% url "menu:list" %}';
+        } else {
+            window.location.href = `{% url "menu:list" %}?category=${category}`;
+        }
+    });
+});
+</script>
+<style>
+.menu-container {
+    padding: var(--spacing-lg);
+}
+
+.category-filter {
+    display: flex;
+    gap: var(--spacing-sm);
+    overflow-x: auto;
+    padding-bottom: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.filter-btn {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    background: white;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.filter-btn.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+.menu-item {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+}
+
+.menu-item:hover {
+    transform: translateY(-4px);
+}
+
+.menu-item-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.menu-item-details {
+    padding: var(--spacing-md);
+}
+
+.menu-item-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin: var(--spacing-sm) 0;
+}
+
+.menu-item-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+}
+</style>
+{% endblock %}
+{% endblock %}

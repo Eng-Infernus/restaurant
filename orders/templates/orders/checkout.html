@@ -1,0 +1,381 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block content %}
+<div class="checkout-container">
+   <form method="post" id="checkout-form" action="{% url 'orders:checkout' %}">
+       {% csrf_token %}
+       <div class="checkout-grid">
+           <!-- Delivery Section -->
+           <div class="delivery-section">
+               <div class="delivery-info">
+                   <h2>{% trans "Delivery Information" %}</h2>
+
+                   <!-- Saved Addresses -->
+                   <div class="saved-addresses">
+                       <h3>{% trans "Select Saved Address" %}</h3>
+                       <div class="address-options">
+                           {% for address in user.addresses.all %}
+                           <label class="address-option">
+                               <input type="radio" name="saved_address" value="{{ address.id }}">
+                               <div class="address-details">
+                                   <p>{{ address.area }}, {% trans "Block" %} {{ address.block }}</p>
+                                   <p>{% trans "Street" %} {{ address.street }}, {% trans "Building" %} {{ address.building }}</p>
+                                   {% if address.apartment %}
+                                       <p>{% trans "Apartment" %} {{ address.apartment }}</p>
+                                   {% endif %}
+                               </div>
+                           </label>
+                           {% endfor %}
+                       </div>
+                   </div>
+
+                   <!-- New Address Form -->
+                   <div class="new-address-form">
+                       <h3>{% trans "Or Enter New Address" %}</h3>
+                       <div class="form-group">
+                           <label>{% trans "Full Name" %}</label>
+                           <input type="text" name="name" value="{{ user.get_full_name }}" required>
+                       </div>
+                       <div class="form-group">
+                           <label>{% trans "Phone Number" %}</label>
+                           <div class="input-group">
+                               <span class="input-prefix">+965</span>
+                               <input type="tel" name="phone" value="{{ user.phone_number|slice:'3:' }}" required>
+                           </div>
+                       </div>
+                       <div class="form-group">
+                           <label>{% trans "Area" %}</label>
+                           <input type="text" name="area">
+                       </div>
+                       <div class="form-group">
+                           <label>{% trans "Block" %}</label>
+                           <input type="text" name="block">
+                       </div>
+                       <div class="form-group">
+                           <label>{% trans "Street" %}</label>
+                           <input type="text" name="street">
+                       </div>
+                       <div class="form-group">
+                           <label>{% trans "Building" %}</label>
+                           <input type="text" name="building">
+                       </div>
+                       <div class="form-group">
+                           <label>{% trans "Floor/Apartment" %}</label>
+                           <input type="text" name="apartment">
+                       </div>
+                   </div>
+
+                   <!-- Payment Method -->
+                   <div class="payment-section">
+                       <h2>{% trans "Payment Method" %}</h2>
+                       <div class="payment-options">
+                           <label class="payment-option">
+                               <input type="radio" name="payment_method" value="knet">
+                               <span>KNET</span>
+                           </label>
+                           <label class="payment-option">
+                               <input type="radio" name="payment_method" value="cash">
+                               <span>{% trans "Cash on Delivery" %}</span>
+                           </label>
+                       </div>
+                   </div>
+               </div>
+           </div>
+
+           <!-- Order Summary -->
+           <div class="order-summary">
+               <h2>{% trans "Order Summary" %}</h2>
+               <div class="summary-items">
+                   {% for item in cart_items %}
+                   <div class="summary-item">
+                       <span>{{ item.quantity }}x {{ item.food_item.name_en }}</span>
+                       <span>{{ item.total|floatformat:3 }} {% trans "KWD" %}</span>
+                   </div>
+                   {% endfor %}
+               </div>
+               <div class="summary-total">
+                   <div class="summary-row">
+                       <span>{% trans "Subtotal" %}</span>
+                       <span>{{ subtotal|floatformat:3 }} {% trans "KWD" %}</span>
+                   </div>
+                   <div class="summary-row">
+                       <span>{% trans "Delivery Fee" %}</span>
+                       <span>{{ delivery_fee|floatformat:3 }} {% trans "KWD" %}</span>
+                   </div>
+                   <div class="summary-row total">
+                       <span>{% trans "Total" %}</span>
+                       <span>{{ total|floatformat:3 }} {% trans "KWD" %}</span>
+                   </div>
+               </div>
+               <button type="submit" class="btn btn-primary place-order-btn">
+                   {% trans "Place Order" %}
+               </button>
+           </div>
+       </div>
+   </form>
+</div>
+
+<style>
+.checkout-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.checkout-grid {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 2rem;
+}
+
+.delivery-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.delivery-info, .order-summary {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.order-summary {
+  position: sticky;
+  top: 2rem;
+  height: fit-content;
+}
+
+.saved-addresses {
+  margin-bottom: 2rem;
+}
+
+.address-options {
+  display: grid;
+  gap: 1rem;
+}
+
+.address-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.address-option:hover {
+  background-color: #f8f9fa;
+  border-color: var(--primary-color);
+}
+
+.address-option.selected {
+  border-color: var(--primary-color);
+  background-color: #f8f9fa;
+}
+
+.address-option input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-color);
+  border-radius: 50%;
+  margin-top: 4px;
+  position: relative;
+}
+
+.address-option input[type="radio"]:checked {
+  border-color: var(--primary-color);
+}
+
+.address-option input[type="radio"]:checked:after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: var(--primary-color);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.input-group {
+  display: flex;
+  align-items: stretch;
+}
+
+.input-prefix {
+  background: #f3f4f6;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-right: none;
+  border-radius: 6px 0 0 6px;
+}
+
+.input-group input {
+  border-radius: 0 6px 6px 0;
+}
+
+.payment-section {
+  margin-top: 2rem;
+}
+
+.payment-options {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.payment-option {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.summary-items {
+  margin: 1.5rem 0;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.summary-total {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid var(--border-color);
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.summary-row.total {
+  font-weight: 600;
+  font-size: 1.2rem;
+  margin-top: 1rem;
+}
+
+.place-order-btn {
+  width: 100%;
+  margin-top: 1.5rem;
+  padding: 1rem;
+}
+
+@media (max-width: 768px) {
+  .checkout-grid {
+      grid-template-columns: 1fr;
+  }
+
+  .order-summary {
+      position: static;
+  }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const addressCards = document.querySelectorAll('.address-option');
+  const newAddressForm = document.querySelector('.new-address-form');
+  const radioButtons = document.querySelectorAll('input[name="saved_address"]');
+  const addressInputs = document.querySelectorAll('.new-address-form input[name="area"], .new-address-form input[name="block"], .new-address-form input[name="street"], .new-address-form input[name="building"]');
+
+  let currentlySelected = null;
+
+  // Address card selection
+  addressCards.forEach(card => {
+      card.addEventListener('click', function(e) {
+          if (e.target.type === 'radio') return;
+
+          const radio = this.querySelector('input[type="radio"]');
+
+          if (currentlySelected === radio) {
+              radio.checked = false;
+              this.classList.remove('selected');
+              currentlySelected = null;
+              newAddressForm.style.display = 'block';
+
+              // Reset the required attribute
+              addressInputs.forEach(input => {
+                  input.setAttribute('required', true);
+              });
+          } else {
+              radioButtons.forEach(btn => {
+                  btn.checked = false;
+                  btn.closest('.address-option').classList.remove('selected');
+              });
+
+              radio.checked = true;
+              this.classList.add('selected');
+              currentlySelected = radio;
+              newAddressForm.style.display = 'none';
+
+              // Remove required attribute when address is selected
+              addressInputs.forEach(input => {
+                  input.removeAttribute('required');
+              });
+          }
+      });
+  });
+
+  // Form validation
+  document.getElementById('checkout-form').addEventListener('submit', function(e) {
+      // Check if payment method is selected
+      const paymentSelected = document.querySelector('input[name="payment_method"]:checked');
+      if (!paymentSelected) {
+          e.preventDefault();
+          alert('Please select a payment method');
+          return false;
+      }
+
+      // Check if saved address is selected or new address is filled
+      const addressSelected = document.querySelector('input[name="saved_address"]:checked');
+      if (!addressSelected) {
+          // Check if new address fields are filled
+          const area = document.querySelector('input[name="area"]').value;
+          const block = document.querySelector('input[name="block"]').value;
+          const street = document.querySelector('input[name="street"]').value;
+          const building = document.querySelector('input[name="building"]').value;
+
+          if (!area || !block || !street || !building) {
+              e.preventDefault();
+              alert('Please select an address or enter a new one');
+              return false;
+          }
+      }
+  });
+});
+</script>
+{% endblock %}

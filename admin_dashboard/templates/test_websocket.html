@@ -1,0 +1,196 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="websocket-test-container">
+    <h2>{% trans "WebSocket Testing Panel" %}</h2>
+    
+    <div class="connection-status">
+        Status: <span id="connection-status">Disconnected</span>
+    </div>
+    
+    <div class="message-log">
+        <h3>{% trans "Message Log" %}</h3>
+        <div id="message-log-content"></div>
+    </div>
+    
+    <div class="test-controls">
+        <button id="connect-ws" class="btn-test">{% trans "Connect WebSocket" %}</button>
+        <button id="disconnect-ws" class="btn-test" disabled>{% trans "Disconnect" %}</button>
+        <button id="simulate-order" class="btn-test" disabled>{% trans "Simulate Order Update" %}</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extrajs %}
+<script>
+class WebSocketTester {
+    constructor() {
+        this.socket = null;
+        this.messageLog = document.getElementById('message-log-content');
+        this.statusSpan = document.getElementById('connection-status');
+        this.setupEventListeners();
+    }
+    
+    setupEventListeners() {
+        document.getElementById('connect-ws').addEventListener('click', () => this.connect());
+        document.getElementById('disconnect-ws').addEventListener('click', () => this.disconnect());
+        document.getElementById('simulate-order').addEventListener('click', () => this.simulateOrderUpdate());
+    }
+    
+    connect() {
+        this.socket = new WebSocket(`ws://${window.location.host}/ws/admin_notifications/`);
+        
+        this.socket.onopen = () => {
+            this.updateStatus('Connected', true);
+            this.logMessage('WebSocket connection established');
+            this.updateButtons(true);
+        };
+        
+        this.socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            this.logMessage(`Received: ${JSON.stringify(data, null, 2)}`);
+        };
+        
+        this.socket.onclose = () => {
+            this.updateStatus('Disconnected', false);
+            this.logMessage('WebSocket connection closed');
+            this.updateButtons(false);
+        };
+        
+        this.socket.onerror = (error) => {
+            this.logMessage(`Error: ${error}`);
+            this.updateStatus('Error', false);
+        };
+    }
+    
+    disconnect() {
+        if (this.socket) {
+            this.socket.close();
+            this.socket = null;
+        }
+    }
+    
+    async simulateOrderUpdate() {
+        try {
+            const response = await fetch('/admin/dashboard/test-order-update/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCookie('csrftoken')
+                }
+            });
+            
+            const data = await response.json();
+            this.logMessage(`Simulated order update: ${JSON.stringify(data, null, 2)}`);
+        } catch (error) {
+            this.logMessage(`Error simulating order update: ${error}`);
+        }
+    }
+    
+    updateStatus(status, isConnected) {
+        this.statusSpan.textContent = status;
+        this.statusSpan.className = isConnected ? 'connected' : 'disconnected';
+    }
+    
+    updateButtons(isConnected) {
+        document.getElementById('connect-ws').disabled = isConnected;
+        document.getElementById('disconnect-ws').disabled = !isConnected;
+        document.getElementById('simulate-order').disabled = !isConnected;
+    }
+    
+    logMessage(message) {
+        const messageElement = document.createElement('div');
+        messageElement.className = 'log-message';
+        messageElement.textContent = `${new Date().toISOString()} - ${message}`;
+        this.messageLog.appendChild(messageElement);
+        this.messageLog.scrollTop = this.messageLog.scrollHeight;
+    }
+    
+    getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    window.wsTester = new WebSocketTester();
+});
+</script>
+
+<style>
+.websocket-test-container {
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.connection-status {
+    margin: 20px 0;
+    padding: 10px;
+    background: #f5f5f5;
+    border-radius: 4px;
+}
+
+.connected {
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.disconnected {
+    color: #f44336;
+    font-weight: bold;
+}
+
+.message-log {
+    margin: 20px 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+}
+
+#message-log-content {
+    height: 300px;
+    overflow-y: auto;
+    background: #f8f9fa;
+    padding: 10px;
+    font-family: monospace;
+}
+
+.log-message {
+    margin: 5px 0;
+    padding: 5px;
+    border-bottom: 1px solid #eee;
+}
+
+.test-controls {
+    margin: 20px 0;
+    display: flex;
+    gap: 10px;
+}
+
+.btn-test {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    background: #2196F3;
+    color: white;
+    cursor: pointer;
+}
+
+.btn-test:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+</style>
+{% endblock %}

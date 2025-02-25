@@ -1,0 +1,54 @@
+<!-- orders/templates/orders/history.html -->
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block content %}
+<div class="orders-history">
+    <h1>{% trans "Order History" %}</h1>
+
+    {% if orders %}
+        <div class="orders-list">
+            {% for order in orders %}
+            <div class="order-card">
+                <div class="order-header">
+                    <div class="order-info">
+                        <h3>{% trans "Order" %} #{{ order.order_number }}</h3>
+                        <span class="order-date">{{ order.created_at|date:"F j, Y" }}</span>
+                    </div>
+                    <span class="order-status {{ order.status }}">
+                        {{ order.get_status_display }}
+                    </span>
+                </div>
+
+                <div class="order-items">
+                    {% for item in order.items %}
+                    <div class="order-item">
+                        <span>{{ item.quantity }}x {{ item.name }}</span>
+                        <span>{{ item.total }} {% trans "KWD" %}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="order-footer">
+                    <div class="order-total">
+                        <span>{% trans "Total" %}</span>
+                        <span class="total-amount">{{ order.total }} {% trans "KWD" %}</span>
+                    </div>
+                    {% if order.status == 'delivered' %}
+                        <button class="btn btn-secondary reorder-btn" data-order-id="{{ order.id }}">
+                            {% trans "Reorder" %}
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-orders">
+            <i class="fas fa-clipboard-list"></i>
+            <p>{% trans "No orders yet" %}</p>
+            <a href="{% url 'menu:list' %}" class="btn btn-primary">{% trans "Browse Menu" %}</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

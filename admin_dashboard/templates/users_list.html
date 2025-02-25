@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="users-container">
+    <div class="users-header">
+        <h1>{% trans "Users Management" %}</h1>
+        <div class="header-actions">
+            <form class="search-form">
+                <input type="search" name="search" placeholder="{% trans 'Search users...' %}" value="{{ request.GET.search }}">
+                <button type="submit" class="btn btn-secondary">
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="stats-cards">
+        <div class="stat-card">
+            <div class="stat-value">{{ total_users }}</div>
+            <div class="stat-label">{% trans "Total Users" %}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ active_users }}</div>
+            <div class="stat-label">{% trans "Active Users" %}</div>
+        </div>
+    </div>
+
+    <div class="users-table-container">
+        <table class="users-table">
+            <thead>
+                <tr>
+                    <th>{% trans "Name" %}</th>
+                    <th>{% trans "Phone" %}</th>
+                    <th>{% trans "Email" %}</th>
+                    <th>{% trans "Joined" %}</th>
+                    <th>{% trans "Status" %}</th>
+                    <th>{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.get_full_name }}</td>
+                    <td>{{ user.phone_number }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.date_joined|date }}</td>
+                    <td>
+                        <span class="status-badge {% if user.is_active %}active{% else %}inactive{% endif %}">
+                            {% if user.is_active %}{% trans "Active" %}{% else %}{% trans "Inactive" %}{% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-icon" title="{% trans 'View Orders' %}" onclick="viewOrders('{{ user.id }}')">
+                                <i class="fas fa-shopping-bag"></i>
+                            </button>
+                            <button class="btn-icon" title="{% trans 'Edit User' %}" onclick="editUser('{{ user.id }}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-icon {% if user.is_active %}deactivate{% else %}activate{% endif %}-user" 
+                                    data-user-id="{{ user.id }}"
+                                    title="{% if user.is_active %}{% trans 'Deactivate' %}{% else %}{% trans 'Activate' %}{% endif %}">
+                                <i class="fas fa-{% if user.is_active %}ban{% else %}check{% endif %}"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% include "admin_dashboard/components/pagination.html" %}
+</div>
+
+<style>
+.users-container {
+    padding: var(--spacing-lg);
+}
+
+.users-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.search-form {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.stats-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.stat-card {
+    background: white;
+    padding: var(--spacing-md);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.users-table-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.users-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.users-table th,
+.users-table td {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.875rem;
+}
+
+.status-badge.active {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.status-badge.inactive {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.action-buttons {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: var(--spacing-xs);
+    color: var(--text-color);
+}
+
+.btn-icon:hover {
+    color: var(--primary-color);
+}
+
+@media (max-width: 768px) {
+    .users-header {
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+    
+    .users-table-container {
+        overflow-x: auto;
+    }
+}
+</style>
+
+{% block extra_js %}
+<script>
+function viewOrders(userId) {
+    window.location.href = `/admin/dashboard/users/${userId}/orders/`;
+}
+
+function editUser(userId) {
+    window.location.href = `/admin/dashboard/users/${userId}/edit/`;
+}
+
+document.querySelectorAll('.activate-user, .deactivate-user').forEach(button => {
+    button.addEventListener('click', async function() {
+        const userId = this.dataset.userId;
+        const action = this.classList.contains('activate-user') ? 'activate' : 'deactivate';
+        
+        if (confirm(`Are you sure you want to ${action} this user?`)) {
+            try {
+                const response = await fetch(`/admin/dashboard/users/${userId}/${action}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+                
+                if (response.ok) {
+                    location.reload();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

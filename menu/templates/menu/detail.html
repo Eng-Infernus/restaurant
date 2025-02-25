@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block content %}
+<div class="item-detail-container">
+    <div class="item-detail-card">
+        <div class="item-image-container">
+            <img src="{{ item.image.url }}" alt="{{ item.name_en }}" class="item-image">
+        </div>
+        <div class="item-info">
+            <h1>{% if LANGUAGE_CODE == 'ar' %}{{ item.name_ar }}{% else %}{{ item.name_en }}{% endif %}</h1>
+            
+            <div class="item-meta">
+                <span class="category">
+                    {% if LANGUAGE_CODE == 'ar' %}
+                        {{ item.category.name_ar }}
+                    {% else %}
+                        {{ item.category.name_en }}
+                    {% endif %}
+                </span>
+                <span class="price">{{ item.price }} {% trans "KWD" %}</span>
+            </div>
+
+            <p class="description">
+                {% if LANGUAGE_CODE == 'ar' %}
+                    {{ item.description_ar }}
+                {% else %}
+                    {{ item.description_en }}
+                {% endif %}
+            </p>
+
+            <div class="item-attributes">
+                {% if item.spice_level > 0 %}
+                    <div class="attribute">
+                        <span class="label">{% trans "Spice Level" %}:</span>
+                        <span class="value">
+                            {% for i in ""|ljust:item.spice_level %}🌶️{% endfor %}
+                        </span>
+                    </div>
+                {% endif %}
+
+                <div class="dietary-info">
+                    {% if item.is_vegetarian %}
+                        <span class="dietary-tag">{% trans "Vegetarian" %} 🥬</span>
+                    {% endif %}
+                    {% if item.is_gluten_free %}
+                        <span class="dietary-tag">{% trans "Gluten Free" %} GF</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="order-controls">
+                <div class="quantity-control">
+                    <button class="quantity-btn" data-action="decrease">-</button>
+                    <label for="quantity"></label><input type="number" value="1" min="1" max="100" id="quantity">
+                    <button class="quantity-btn" data-action="increase">+</button>
+                </div>
+                <button class="btn btn-primary add-to-cart" data-item-id="{{ item.id }}">
+                    {% trans "Add to Cart" %}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.item-detail-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: var(--spacing-lg);
+}
+
+.item-detail-card {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-lg);
+}
+
+.item-image-container {
+    height: 400px;
+    overflow: hidden;
+}
+
+.item-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.item-info {
+    padding: var(--spacing-lg);
+}
+
+.item-meta {
+    display: flex;
+    gap: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+}
+
+.item-attributes {
+    margin: var(--spacing-lg) 0;
+}
+
+.attribute {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+}
+
+.order-controls {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+}
+
+.quantity-control {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.quantity-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: white;
+    cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    .item-detail-card {
+        grid-template-columns: 1fr;
+    }
+    
+    .item-image-container {
+        height: 300px;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const quantityBtns = document.querySelectorAll('.quantity-btn');
+    const quantityInput = document.getElementById('quantity');
+    const addToCartBtn = document.querySelector('.add-to-cart');
+
+    quantityBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const action = btn.dataset.action;
+            let value = parseInt(quantityInput.value);
+            if (action === 'increase' && value < 10) {
+                quantityInput.value = value + 1;
+            } else if (action === 'decrease' && value > 1) {
+                quantityInput.value = value - 1;
+            }
+        });
+    });
+
+    addToCartBtn.addEventListener('click', async () => {
+        const itemId = addToCartBtn.dataset.itemId;
+        const quantity = parseInt(quantityInput.value);
+
+        try {
+            const response = await fetch('{% url "orders:add_to_cart" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: `item_id=${itemId}&quantity=${quantity}`
+            });
+
+            if (response.ok) {
+                window.location.href = '{% url "menu:list" %}';
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+<link rel="stylesheet" href="{% static 'admin_dashboard/css/dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+        <div class="card">
+            <h3>{% trans "Today's Sales" %}</h3>
+            <p class="amount">{{ today_sales|floatformat:3 }} KWD</p>
+        </div>
+        <div class="card">
+            <h3>{% trans "Today's Orders" %}</h3>
+            <p class="amount">{{ today_orders_count }}</p>
+        </div>
+    </div>
+
+    <!-- Sales Chart -->
+    <div class="chart-container">
+        <canvas id="salesChart"></canvas>
+    </div>
+
+    <!-- Pending Orders -->
+    <div class="orders-section">
+        <h2>{% trans "Pending Orders" %}</h2>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>{% trans "Order #" %}</th>
+                        <th>{% trans "Customer" %}</th>
+                        <th>{% trans "Total" %}</th>
+                        <th>{% trans "Status" %}</th>
+                        <th>{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in pending_orders %}
+                    <tr>
+                        <td>{{ order.order_number }}</td>
+                        <td>{{ order.customer.phone_number }}</td>
+                        <td>{{ order.total|floatformat:3 }} KWD</td>
+                        <td>{{ order.get_status_display }}</td>
+                        <td>
+                            <button class="btn-update-status" data-order-id="{{ order.id }}">
+                                {% trans "Update Status" %}
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Popular Items -->
+    <div class="popular-items">
+        <h2>{% trans "Popular Items" %}</h2>
+        <div class="items-grid">
+            {% for item in popular_items %}
+            <div class="item-card">
+                <img src="{{ item.image.url }}" alt="{{ item.name_en }}">
+                <h4>{{ item.name_en }}</h4>
+                <p>{% trans "Orders" %}: {{ item.order_count }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extrajs %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Sales Chart
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    const salesData = {{ sales_data|safe }};
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: salesData.map(d => d.date),
+            datasets: [{
+                label: '{% trans "Daily Sales (KWD)" %}',
+                data: salesData.map(d => d.total),
+                borderColor: '#4CAF50',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: '{% trans "Sales Last 7 Days" %}'
+                }
+            }
+        }
+    });
+
+    // Status Update Handler
+    document.querySelectorAll('.btn-update-status').forEach(button => {
+        button.addEventListener('click', function() {
+            const orderId = this.dataset.orderId;
+            // Add your status update modal/form logic here
+        });
+    });
+});
+</script>
+{% endblock %}

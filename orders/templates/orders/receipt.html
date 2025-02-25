@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="receipt-container">
+    <div class="receipt-card">
+        <div class="receipt-header">
+            <h1>{% trans "Order Receipt" %}</h1>
+            <div class="order-info">
+                <p class="order-number">{% trans "Order" %} #{{ order.order_number }}</p>
+                <p class="order-date">{{ order.created_at|date:"F j, Y, H:i" }}</p>
+            </div>
+        </div>
+        
+        <div class="customer-info">
+            <h2>{% trans "Customer Information" %}</h2>
+            <p><strong>{% trans "Name" %}:</strong> {{ order.customer.get_full_name }}</p>
+            <p><strong>{% trans "Phone" %}:</strong> {{ order.customer.phone_number }}</p>
+        </div>
+        
+        <div class="delivery-info">
+            <h2>{% trans "Delivery Details" %}</h2>
+            <p><strong>{% trans "Address" %}:</strong> {{ order.delivery_address }}</p>
+            <p><strong>{% trans "Payment Method" %}:</strong> {{ order.get_payment_method_display }}</p>
+        </div>
+        
+        <div class="order-items">
+            <h2>{% trans "Order Items" %}</h2>
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th>{% trans "Item" %}</th>
+                        <th>{% trans "Quantity" %}</th>
+                        <th>{% trans "Price" %}</th>
+                        <th>{% trans "Total" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in order_items %}
+                    <tr>
+                        <td>{{ item.food_item.name_en }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>{{ item.price }} {% trans "KWD" %}</td>
+                        <td>{{ item.total }} {% trans "KWD" %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="order-summary">
+            <div class="summary-row">
+                <span>{% trans "Subtotal" %}</span>
+                <span>{{ subtotal|floatformat:3 }} {% trans "KWD" %}</span>
+            </div>
+            <div class="summary-row">
+                <span>{% trans "Delivery Fee" %}</span>
+                <span>{{ delivery_fee|floatformat:3 }} {% trans "KWD" %}</span>
+            </div>
+            <div class="summary-row total">
+                <span>{% trans "Total" %}</span>
+                <span>{{ order.total|floatformat:3 }} {% trans "KWD" %}</span>
+            </div>
+        </div>
+        
+        <div class="receipt-footer">
+            <p>{% trans "Thank you for your order!" %}</p>
+            <div class="actions">
+                <button class="btn btn-primary print-receipt">{% trans "Print Receipt" %}</button>
+                <a href="{% url 'menu:home' %}" class="btn btn-secondary">{% trans "Back to Home" %}</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.receipt-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 1rem;
+}
+
+.receipt-card {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.receipt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.receipt-header h1 {
+    color: var(--primary-color);
+    margin: 0;
+}
+
+.order-info {
+    text-align: right;
+}
+
+.order-number {
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin: 0 0 0.5rem;
+}
+
+.order-date {
+    color: #666;
+    margin: 0;
+}
+
+.customer-info, .delivery-info {
+    margin-bottom: 1.5rem;
+}
+
+.customer-info h2, .delivery-info h2, .order-items h2 {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+}
+
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+}
+
+.items-table th, .items-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.items-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+.order-summary {
+    margin: 1.5rem 0;
+    padding-top: 1rem;
+    border-top: 2px solid var(--border-color);
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.summary-row.total {
+    font-weight: 700;
+    font-size: 1.2rem;
+    margin-top: 0.5rem;
+}
+
+.receipt-footer {
+    text-align: center;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 2px solid var(--border-color);
+}
+
+.receipt-footer p {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+}
+
+.actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+@media print {
+    .actions {
+        display: none;
+    }
+    
+    body {
+        background: white;
+    }
+    
+    .receipt-card {
+        box-shadow: none;
+    }
+}
+</style>
+
+<script>
+document.querySelector('.print-receipt').addEventListener('click', function() {
+    window.print();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="notifications-container">
+    <div class="notifications-header">
+        <h1>{% trans "Notifications" %}</h1>
+        <button class="btn btn-secondary mark-all-read">{% trans "Mark All as Read" %}</button>
+    </div>
+
+    <div class="notifications-list">
+        {% for notification in notifications %}
+            <div class="notification-item {% if not notification.is_read %}unread{% endif %}">
+                <div class="notification-content">
+                    <div class="notification-message">{{ notification.message }}</div>
+                    <div class="notification-meta">
+                        <span class="notification-time">{{ notification.created_at|timesince }}</span>
+                        {% if notification.order %}
+                            <a href="{% url 'orders:detail' notification.order.id %}" class="notification-link">
+                                {% trans "View Order" %}
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if not notification.is_read %}
+                    <form method="post" action="{% url 'notifications:mark_read' notification.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-icon mark-read">
+                            <i class="fas fa-check"></i>
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        {% empty %}
+            <div class="no-notifications">
+                <i class="fas fa-bell-slash"></i>
+                <p>{% trans "No notifications yet" %}</p>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+.notifications-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: var(--spacing-lg);
+}
+
+.notifications-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.notification-item {
+    background: white;
+    padding: var(--spacing-md);
+    border-radius: 8px;
+    margin-bottom: var(--spacing-sm);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.notification-item.unread {
+    background: #F0F9FF;
+    border-left: 4px solid #3B82F6;
+}
+
+.notification-message {
+    margin-bottom: var(--spacing-xs);
+}
+
+.notification-meta {
+    display: flex;
+    gap: var(--spacing-md);
+    font-size: 0.875rem;
+    color: #666;
+}
+
+.no-notifications {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: #666;
+}
+
+.no-notifications i {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-md);
+}
+
+@media (max-width: 768px) {
+    .notifications-header {
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+}
+</style>
+
+{% block extra_js %}
+<script>
+document.querySelector('.mark-all-read').addEventListener('click', async function() {
+    const response = await fetch('{% url "notifications:mark_all_read" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    });
+    if (response.ok) {
+        location.reload();
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}

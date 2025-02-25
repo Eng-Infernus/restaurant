@@ -1,0 +1,191 @@
+<!-- admin_dashboard/templates/admin_dashboard/analytics.html -->
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="analytics-container">
+    <!-- Monthly Overview -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>{% trans "Monthly Sales" %}</h3>
+            <p class="amount">{{ monthly_sales.total_sales|default:0 }} {% trans "KWD" %}</p>
+        </div>
+        <div class="stat-card">
+            <h3>{% trans "Total Orders" %}</h3>
+            <p class="amount">{{ monthly_sales.order_count|default:0 }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>{% trans "Average Order Value" %}</h3>
+            <p class="amount">{{ monthly_sales.avg_order_value|default:0 }} {% trans "KWD" %}</p>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="charts-grid">
+        <div class="chart-card">
+            <h3>{% trans "Sales Trend" %}</h3>
+            <canvas id="salesChart"></canvas>
+        </div>
+        <div class="chart-card">
+            <h3>{% trans "Payment Methods" %}</h3>
+            <canvas id="paymentChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Popular Items -->
+    <div class="analytics-section">
+        <h3>{% trans "Top Selling Items" %}</h3>
+        <div class="items-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>{% trans "Item" %}</th>
+                        <th>{% trans "Category" %}</th>
+                        <th>{% trans "Total Orders" %}</th>
+                        <th>{% trans "Revenue" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in popular_items %}
+                    <tr>
+                        <td>{{ item.name_en }}</td>
+                        <td>{{ item.category.name_en }}</td>
+                        <td>{{ item.total_orders }}</td>
+                        <td>{{ item.total_revenue }} {% trans "KWD" %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+.dashboard-container,
+.analytics-container {
+    padding: var(--spacing-lg);
+}
+
+.summary-grid,
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+}
+
+.summary-card,
+.stat-card {
+    background: white;
+    padding: var(--spacing-lg);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.chart-card {
+    background: white;
+    padding: var(--spacing-lg);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.dashboard-section,
+.analytics-section {
+    background: white;
+    padding: var(--spacing-lg);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: var(--spacing-lg);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.items-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.item-card {
+    background: white;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.item-card img {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+}
+
+.item-info {
+    padding: var(--spacing-sm);
+}
+
+.items-table table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.items-table th,
+.items-table td {
+    padding: var(--spacing-sm);
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+@media (max-width: 768px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Sales Trend Chart
+    const salesCtx = document.getElementById('salesChart').getContext('2d');
+    new Chart(salesCtx, {
+        type: 'line',
+        data: {
+            labels: {{ sales_dates|safe }},
+            datasets: [{
+                label: '{% trans "Daily Sales" %}',
+                data: {{ sales_data|safe }},
+                borderColor: '#4CAF50',
+                tension: 0.1
+            }]
+        }
+    });
+
+    // Payment Methods Chart
+    const paymentCtx = document.getElementById('paymentChart').getContext('2d');
+    new Chart(paymentCtx, {
+        type: 'pie',
+        data: {
+            labels: {{ payment_methods_labels|safe }},
+            datasets: [{
+                data: {{ payment_methods_data|safe }},
+                backgroundColor: ['#4CAF50', '#2196F3', '#FFC107']
+            }]
+        }
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}
